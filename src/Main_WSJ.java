@@ -23,7 +23,7 @@ public class Main_WSJ {
 		LinkedList<Attribute> attrs = tbp.getAttrs();
 		Tree tree = new Node(es,attrs);
 		System.out.println(tree);
-
+		HTMLExport.toFile(tree);
 
 	}
 

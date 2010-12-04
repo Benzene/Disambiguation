@@ -173,7 +173,9 @@ public class TreeBankParser {
 	}
 
 	public void addExample(WordInfo wi) {
-		l.add(toExample(wi));
+		if (cp.isNounOrVerb(wi.type)) {
+			l.add(toExample(wi));
+		}
 	}
 
 	public Example toExample(WordInfo wi) {

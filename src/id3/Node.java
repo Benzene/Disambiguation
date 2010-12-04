@@ -23,7 +23,7 @@ public class Node implements Tree {
 		Answer aa = es.getNextQuestion(availableAttributes);
 		this.a = aa.a;		
 		this.children = new HashMap<AttrValue, Tree>();
-		
+
 		ExampleSet esv = null;
 		for (AttrValue v : a.getValues()) {
 			esv = aa.answers.get(v);
@@ -35,14 +35,18 @@ public class Node implements Tree {
 					if (!childAttrs.remove(a)) {
 						System.err.println("Attribute " + a.name + " not removed. This shouldn't happen.");
 					}
-					this.children.put(v, new Node(esv,childAttrs));
+					if (childAttrs.isEmpty()) {
+						this.children.put(v, new Leaf(esv.mostProbableCat()));
+					} else {
+						this.children.put(v, new Node(esv,childAttrs));
+					}
 				}
 			} else {
 				this.children.put(v, new Leaf(this.es.mostProbableCat()));
 			}
 		}
 	}
-	
+
 	public String toString() {
 		String ret = "(N: " + a + " ";
 		for (AttrValue v : children.keySet()) {
@@ -52,7 +56,7 @@ public class Node implements Tree {
 		ret += ")";
 		return ret;
 	}
-	
+
 	public String toHtml() {
 		String ret = "<div class=\"tree\">\n<div class=\"node\">" + a + "</div><br />";
 		for (AttrValue v : children.keySet()) {

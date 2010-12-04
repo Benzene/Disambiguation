@@ -68,6 +68,10 @@ public class CategoryParser {
 		return categories.get(type);
 	}
 	
+	boolean isNounOrVerb(String type) {
+		return (categories.get(type) == Noun || categories.get(type) == Verb);
+	}
+	
 	AttrValue getAttrValue(String type) {
 		return attrvalues.get(type);
 	}
