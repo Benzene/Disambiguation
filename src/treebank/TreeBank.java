@@ -5,6 +5,8 @@ import id3.Attribute;
 import id3.Category;
 import id3.Example;
 import id3.ExampleSet;
+import id3.Node;
+import id3.Tree;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -13,21 +15,24 @@ import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.LinkedList;
 
-public class TreeBankParser {
-
-	static String baseFile = "WSJ/00/wsj_00";
+public class TreeBank {
+	
+	static String baseFile = "WSJ/01/wsj_01";
 	static String fileExt = ".pos";
 	static String ambApp = ".amb";
-
+	
 	int nbPhrases = 0;
 	int errCount = 0;
-	LinkedList<Example> l = new LinkedList<Example>();
-	LinkedList<Attribute> attrs = new LinkedList<Attribute>();
-
-	CategoryParser cp;
+	
+	int nbTestedWords;
+	int nbPositives;
+	
+	public Tree t;
 
 	WordInfo previousWord;
 	WordInfo currentWord;
+
+	CategoryParser cp;
 
 	Attribute FollowingWord;
 	Attribute PreviousWord;
@@ -35,8 +40,23 @@ public class TreeBankParser {
 	AttrValue IsInNominalGroup;
 	AttrValue IsNotInNominalGroup;
 
-	public TreeBankParser() {
+	LinkedList<Example> l = new LinkedList<Example>();
 
+	LinkedList<Attribute> attrs = new LinkedList<Attribute>();
+
+	boolean testmode = false;
+	
+	
+	public TreeBank() {
+		init();
+		parseDir();
+		buildTree();
+	}
+	
+	/*
+	 * Fonction d'initialisation, avant de parser le fichier.
+	 */	
+	void init() {
 		// On crée un objet qui gèrera les catégories :
 		cp = new CategoryParser();
 
@@ -64,7 +84,12 @@ public class TreeBankParser {
 		attrs.add(FollowingWord);
 		attrs.add(PreviousWord);
 		attrs.add(InNominalGroup);
+	}
 
+	/*
+	 * Boucle sur tous les fichiers d'un dossier
+	 */
+	void parseDir() {
 		// On parse le tout pour créer la liste d'examples.
 		// TODO : Remettre les chiffres à 9, et skipper le cas 00.
 		for (int c1 = 0; c1 <= 9; c1++) {
@@ -75,28 +100,32 @@ public class TreeBankParser {
 				parseFile(baseFile + c1 + c2 + fileExt);
 			}
 		}
-
-		System.out.println("Nombre de phrases : " + nbPhrases);
-		System.out.println("Nombre d'erreurs : " + errCount);
 	}
-
+	
+	void buildTree() {
+		t = new Node(new ExampleSet(l),attrs);
+		testmode = true;
+	}
+	/*
+	 * Boucle sur toutes les lignes d'un fichier.
+	 */
 	void parseFile(String filename) {
 
-		String output = "";
 		String ligne;
 		try {
 			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(filename)));
 			while((ligne=br.readLine()) != null) {
-				//				output += ligne;
 				parseLine(ligne);
 			}
 			br.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
 	}
 
+	/*
+	 * Boucle sur tous les mots d'une ligne
+	 */
 	void parseLine(String line) {
 		boolean isNominalGroup;
 
@@ -135,34 +164,20 @@ public class TreeBankParser {
 				errCount++;
 			}
 		}
+		
 	}
 
-	void newPhrase() {
-		// Commit infos for the end of previous sentence, if it exists
-		if (currentWord != null) {
-			currentWord.nexttype = "NULL";
-			addExample(currentWord);
-			currentWord = null;
-		}
-		nbPhrases++;
-	}
-
-	public ExampleSet toExampleSet() {
-		return (new ExampleSet(l));
-	}
-
-	public LinkedList<Attribute> getAttrs() {
-		return attrs;
-	}
-
-	public void parseWord(String word, String type, boolean inNominalGroup) {
+	/*
+	 * Parse un mot, crée le WordInfo, et le processe dès que complet.
+	 */
+	void parseWord(String word, String type, boolean inNominalGroup) {
 		previousWord = currentWord;
 		currentWord = new WordInfo(word, type, inNominalGroup);
 
-		if (previousWord != null) {
+		if (previousWord != null && !previousWord.word.equals("") ) {
 			// Update infos for previous word and add as an example.
 			previousWord.nexttype = type;
-			addExample(previousWord);
+			processWord(previousWord);
 
 			// Update infos for current word.
 			currentWord.prevtype = previousWord.type;
@@ -171,14 +186,23 @@ public class TreeBankParser {
 		}
 
 	}
-
-	public void addExample(WordInfo wi) {
-		if (cp.isNounOrVerb(wi.type)) {
-			l.add(toExample(wi));
+	/*
+	 * Fonction appelée en fin de phrase.
+	 */
+	void newPhrase() {
+		// Commit infos for the end of previous sentence, if it exists
+		previousWord = currentWord;
+		currentWord = new WordInfo("","NULL",false);
+		
+		if (previousWord != null) {
+			previousWord.nexttype = "NULL";
+			processWord(previousWord);
 		}
+		
+		nbPhrases++;
 	}
-
-	public Example toExample(WordInfo wi) {
+	
+	Example toExample(WordInfo wi) {
 		HashMap<Attribute,AttrValue> h = new HashMap<Attribute, AttrValue>();
 
 		h.put(PreviousWord, cp.getAttrValue(wi.prevtype));
@@ -189,4 +213,55 @@ public class TreeBankParser {
 
 	}
 
+	void processWord(WordInfo wi) {
+		if (testmode) {
+			processWordTest(wi);
+		} else {
+			processWordBuild(wi);
+		}
+	}
+	
+	void processWordBuild(WordInfo wi) {
+		if (cp.isNounOrVerb(wi.type)) {
+			l.add(toExample(wi));
+		}
+	}
+
+	void processWordTest(WordInfo wi) {
+		if (cp.isNounOrVerb(wi.type)) {
+//			System.out.println("Process word : " + wi.word + " (" + wi.type + ")");
+//			System.out.println("(" + wi.prevtype + " " + wi.type + " " + wi.nexttype + ")");
+			AttrValue v = cp.getAttrValue(wi.prevtype);
+			if (v == null) {
+				System.out.println("Corpus fail ! found type : " + wi.prevtype);
+				return;
+			}
+			v = cp.getAttrValue(wi.nexttype);
+			if (v == null) {
+				System.out.println("Corpus fail ! found type : " + wi.prevtype);
+				return;
+			}
+			Example e = toExample(wi);
+//			System.out.println(e);
+			Category computedCategory = t.get(toExample(wi));
+//			System.out.println("Computed Category : " + computedCategory);
+			nbTestedWords++;
+			if (computedCategory == cp.getCategory(wi.type)) {
+//				System.out.println("Success !");
+				nbPositives++;
+			} else {
+//				System.out.println("Failure !");
+			}
+		}
+	}
+
+
+	public void testPerformance() {
+		nbTestedWords = 0;
+		nbPositives = 0;
+		parseDir();
+		System.out.println("Tested words : " + nbTestedWords + " - Positive matches : " + nbPositives + " - Score : " +
+				(double)nbPositives*100/(double)nbTestedWords);
+	}
+	
 }

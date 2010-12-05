@@ -15,4 +15,8 @@ public class Leaf implements Tree {
 	public String toHtml() {
 		return "<div class=\"leaf\">" + c + "</div>";
 	}
+	
+	public Category get(Example e) {
+		return c;
+	}
 }

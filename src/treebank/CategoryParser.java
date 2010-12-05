@@ -43,7 +43,26 @@ public class CategoryParser {
 		categories.put("WP",Other);
 		categories.put("WP$",Other);
 		categories.put("WRB",Other);
+		categories.put(",", Other);
+		categories.put(".", Other);
+		categories.put("(", Other);
+		categories.put(")", Other);
+		categories.put("''", Other);
+		categories.put(":", Other);
+		categories.put("``", Other);
 		
+		// To account for bugs in the corpus :
+		categories.put("$", Other);
+		categories.put("winter", Other);
+		categories.put("UH", Other);
+		categories.put("McGraw-Hill", Other);
+		categories.put("McGraw", Other);
+		categories.put("8", Other);
+		categories.put("4", Other);
+		categories.put("2", Other);
+		categories.put("Contra", Other);
+		categories.put("Firestone", Other);
+
 		// Some specific types :
 		categories.put("NULL",Other);
 

@@ -23,5 +23,9 @@ public class Example {
 	public AttrValue getAnswer(Attribute a) {
 		return answers.get(a);
 	}
+	
+	public String toString() {
+		return name + " - " + category + " - " + answers;
+	}
 
 }

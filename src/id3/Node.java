@@ -65,5 +65,11 @@ public class Node implements Tree {
 		ret += "</div>";
 		return ret;
 	}
+	
+	public Category get(Example e) {
+		AttrValue v = e.getAnswer(a);
+//		System.out.println("Got answer " + v + " to question "+ a + " in get()");
+		return children.get(v).get(e);
+	}
 
 }

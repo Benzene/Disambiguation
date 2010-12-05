@@ -87,7 +87,7 @@ public class ExampleSet {
 			}
 		}
 		
-		System.out.println("Thus we choose attribute " + rep + " because gain is " + maxGain);
+//		System.out.println("Thus we choose attribute " + rep + " because gain is " + maxGain);
 		return new Answer(rep, argrep);
 	}
 	
@@ -111,7 +111,7 @@ public class ExampleSet {
 //			System.out.println("rep : " + rep);
 		}
 		
-		System.out.println("Choosing attribute " + a + " would mean a gain of " + rep);
+//		System.out.println("Choosing attribute " + a + " would mean a gain of " + rep);
 		return rep;
 	}
 	/*
