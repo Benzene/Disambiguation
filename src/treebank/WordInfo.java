@@ -12,6 +12,7 @@ public class WordInfo {
 	public String type;
 	public String prevtype;
 	public String nexttype;
+	public String realtype;
 	public boolean inNominalGroup;
 	
 	public WordInfo(String word, String type, boolean inNominalGroup) {

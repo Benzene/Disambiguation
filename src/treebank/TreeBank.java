@@ -17,7 +17,7 @@ import java.util.LinkedList;
 
 public class TreeBank {
 	
-	static String baseFile = "WSJ/01/wsj_01";
+	static String baseFile = "WSJ/00/wsj_00";
 	static String fileExt = ".pos";
 	static String ambApp = ".amb";
 	
@@ -91,7 +91,6 @@ public class TreeBank {
 	 */
 	void parseDir() {
 		// On parse le tout pour créer la liste d'examples.
-		// TODO : Remettre les chiffres à 9, et skipper le cas 00.
 		for (int c1 = 0; c1 <= 9; c1++) {
 			for (int c2 = 0; c2 <= 9; c2++) {
 				if (c1 == 0 && c2 == 0) {
@@ -118,6 +117,25 @@ public class TreeBank {
 				parseLine(ligne);
 			}
 			br.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/*
+	 * Boucle sur les lignes de 2 fichiers en parallèle
+	 */
+	void parseFiles(String filename1, String filename2) {
+		String line1;
+		String line2;
+		try {
+			BufferedReader br1 = new BufferedReader(new InputStreamReader(new FileInputStream(filename1)));
+			BufferedReader br2 = new BufferedReader(new InputStreamReader(new FileInputStream(filename2)));
+			while((line1=br1.readLine()) != null && (line2=br2.readLine()) != null) {
+				parseLines(line1,line2);
+			}
+			br1.close();
+			br2.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -164,7 +182,55 @@ public class TreeBank {
 				errCount++;
 			}
 		}
-		
+	}
+
+	/*
+	 * Boucle sur les mots de 2 lignes en parallele
+	 */
+	void parseLines(String line1, String line2) {
+		boolean isNominalGroup;
+
+		// Empty line case.
+		if (line1.length() == 0) {
+			return;
+		}
+
+		// If we begin a new phrase now.
+		if (line1.equals("======================================")) {
+			newPhrase();
+			return;
+		}
+
+		// If we have a nominal group. 
+		if (line1.charAt(0) == '[') {
+			if (line2.charAt(0) != '[') {
+				System.out.println("Line mismatch ([] check). Shouldn't happen.");
+				return;
+			}
+			isNominalGroup = true;
+			line1 = line1.substring(2, line1.length()-2);
+			line2 = line2.substring(2, line2.length()-2);
+		} else {
+			isNominalGroup = false;
+		}
+
+		// On découpe en mots
+		String[] words1 = line1.split(" +");
+		String[] words2 = line2.split(" +");
+		if (words1.length != words2.length) {
+			System.out.println("Line mismatch (nbWords check). Shouldn'y happen.");
+			return;
+		}
+		for (int i = 0; i < words1.length; i++) {
+
+			if (words1[i].equals("")) {
+				continue;
+			}
+
+			String[] pair1 = words1[i].split("/");
+			String[] pair2 = words2[i].split("/");
+			parseWords(pair1[0],pair1[1],pair2[0],pair2[1],isNominalGroup);
+		}
 	}
 
 	/*
@@ -186,6 +252,29 @@ public class TreeBank {
 		}
 
 	}
+
+	void parseWords(String word, String type, String word2, String potentialTypes, boolean inNominalGroup) {
+		if (!word.equals(word2)) {
+			System.out.println("Word mismatch ! ("+word+"!="+word2+"). Shouldn't happen");
+			return;
+		}
+		previousWord = currentWord;
+		currentWord = new WordInfo(word, potentialTypes, inNominalGroup);
+		currentWord.realtype = type;
+
+		if (previousWord != null && !previousWord.word.equals("") ) {
+			// Update infos for previous word and add as an example.
+			previousWord.nexttype = potentialTypes;
+			processWord(previousWord);
+
+			// Update infos for current word.
+			currentWord.prevtype = previousWord.type;
+		} else {
+			currentWord.prevtype = "NULL";
+		}
+	}
+	
+	
 	/*
 	 * Fonction appelée en fin de phrase.
 	 */
@@ -228,29 +317,29 @@ public class TreeBank {
 	}
 
 	void processWordTest(WordInfo wi) {
-		if (cp.isNounOrVerb(wi.type)) {
+		if (wi.type.contains("|")) {
 //			System.out.println("Process word : " + wi.word + " (" + wi.type + ")");
 //			System.out.println("(" + wi.prevtype + " " + wi.type + " " + wi.nexttype + ")");
 			AttrValue v = cp.getAttrValue(wi.prevtype);
 			if (v == null) {
-				System.out.println("Corpus fail ! found type : " + wi.prevtype);
+				System.out.println("Corpus fail ! found type in previous word : " + wi.prevtype);
 				return;
 			}
 			v = cp.getAttrValue(wi.nexttype);
 			if (v == null) {
-				System.out.println("Corpus fail ! found type : " + wi.prevtype);
+				System.out.println("Corpus fail ! found type in next word : " + wi.nexttype);
 				return;
 			}
-			Example e = toExample(wi);
+//			Example e = toExample(wi);
 //			System.out.println(e);
 			Category computedCategory = t.get(toExample(wi));
 //			System.out.println("Computed Category : " + computedCategory);
 			nbTestedWords++;
-			if (computedCategory == cp.getCategory(wi.type)) {
-//				System.out.println("Success !");
+			if (computedCategory == cp.getCategory(wi.realtype)) {
+			//	System.out.println("Success ! "+ wi.type + " -> " + computedCategory + "(actually "+wi.realtype+")");
 				nbPositives++;
 			} else {
-//				System.out.println("Failure !");
+				System.out.println("Failure ! "+ wi.type + " -> " + computedCategory + "(actually "+wi.realtype+")");
 			}
 		}
 	}
@@ -259,7 +348,16 @@ public class TreeBank {
 	public void testPerformance() {
 		nbTestedWords = 0;
 		nbPositives = 0;
-		parseDir();
+		
+		for (int c1 = 0; c1 <= 9; c1++) {
+			for (int c2 = 0; c2 <= 9; c2++) {
+				if (c1 == 0 && c2 == 0) {
+					continue;
+				}
+				parseFiles(baseFile + c1 + c2 + fileExt,baseFile + c1 + c2 + fileExt + ambApp);
+			}
+		}
+		
 		System.out.println("Tested words : " + nbTestedWords + " - Positive matches : " + nbPositives + " - Score : " +
 				(double)nbPositives*100/(double)nbTestedWords);
 	}

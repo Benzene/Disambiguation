@@ -52,7 +52,7 @@ public class CategoryParser {
 		categories.put("``", Other);
 		
 		// To account for bugs in the corpus :
-		categories.put("$", Other);
+/*		categories.put("$", Other);
 		categories.put("winter", Other);
 		categories.put("UH", Other);
 		categories.put("McGraw-Hill", Other);
@@ -62,7 +62,7 @@ public class CategoryParser {
 		categories.put("2", Other);
 		categories.put("Contra", Other);
 		categories.put("Firestone", Other);
-
+*/
 		// Some specific types :
 		categories.put("NULL",Other);
 
