@@ -1,0 +1,32 @@
+Disambiguation
+
+Resolution de l'homographie nom/verbe sur un corpus (PennTreeBank).
+
+*** Organisation du code :
+Le package id3 implémente l'algorithme id3 pour la construction d'un arbre de décision, de manière indépendante des données. On crée des Attribute, les AttrValue qu'ils peuvent prendre, puis des Example, qui sont des correspondances entre une liste de valeurs prises par des attributs, et une catégorie.
+Le fichier ExampleSet.java contient les fonctions d'entropie, de comparaison de gain, de calcul de l'attribut le plus discriminant, etc qui forment le coeur de l'algorithme.
+Le fichier Node.java contient les fonctions qui construisent récursivement l'arbre, à partir de la racine. 
+(comme décrit dans http://www.doc.ic.ac.uk/~sgc/teaching/v231/lecture11.html).
+Le fichier Main.java résoud le cas posé dans ce lien.
+
+Le package treebank implémente le cas spécifique qui nous intéresse, en utilisant id3. La majeure partie du code se trouve dans TreeBank, qui est la classe qui parse le PennTreeBank pour créer l'arbre, puis pour tester son efficacité.
+TreeBank tb = new TreeBank("17"); crée l'arbre de décision à partir du corpus 17.
+tb.testPerformance() teste cet arbre sur le corpus 00 (le seul où l'on ait des fichiers avec ambiguité).
+Il implémente cinq attributs :
+* Le mot est-il dans un groupe nominal ?
+* Quel est le type des deux mots précédents ?
+* Celui des deux mots suivants ?
+
+*** Output :
+Les arbres peuvent être affichés de deux manières distinctes:
+
+* Tree.toString() donne une sortie texte (parenthésée)
+
+* HTMLExport.toFile(Tree t) crée un fichier HTML représentant l'arbre. Le fichier créé par défaut est TestDrawTree.html, à la racine du projet. Un arbre (ou sous-arbre) est encapsulé en vert. En rouge, l'attribut à la racine de cet arbre, puis les valeurs prises par cet attribut, et les sous-arbres associés. En bleu, les feuilles.
+Cliquer sur un sous-arbre active/desactive l'affichage des fils (pour des raisons de lisibilité).
+
+*** Résultats :
+On obtient un score de 94% avec calibration sur le corpus 00, et un score d'environ 89-90% en calibrant sur des corpus différents.
+
+On observant l'arbre généré, il apparaît que le caractère le plus discriminant est l'appartenance (ou non) à un groupe nominal.
+Puis vient le mot suivant. Ensuite, les choses sont moins tranchées, et dépendent des branches.
