@@ -17,9 +17,11 @@ import java.util.LinkedList;
 
 public class TreeBank {
 	
-	static String baseFile = "WSJ/00/wsj_00";
+	static String baseFileTrain = "WSJ/00/wsj_00";
+	static String baseFileTest = "WSJ/00/wsj_00";
 	static String fileExt = ".pos";
 	static String ambApp = ".amb";
+//	static String ambApp = "";
 	
 	int nbPhrases = 0;
 	int errCount = 0;
@@ -30,12 +32,15 @@ public class TreeBank {
 	public Tree t;
 
 	WordInfo previousWord;
+	WordInfo previousPreviousWord;
 	WordInfo currentWord;
 
 	CategoryParser cp;
 
 	Attribute FollowingWord;
+	Attribute FollowingFollowingWord;
 	Attribute PreviousWord;
+	Attribute PreviousPreviousWord;
 	Attribute InNominalGroup;
 	AttrValue IsInNominalGroup;
 	AttrValue IsNotInNominalGroup;
@@ -62,15 +67,25 @@ public class TreeBank {
 
 		// On cree les attributs
 		// - Distinction sur le mot suivant
-		FollowingWord = new Attribute("FollowingWord");
+		FollowingWord = new Attribute("Word+1");
 		for (AttrValue a : cp.getAllTypes()) {
 			FollowingWord.addValue(a);
 		}
 
+		FollowingFollowingWord = new Attribute("Word+2");
+		for (AttrValue a : cp.getAllTypes()) {
+			FollowingFollowingWord.addValue(a);
+		}
+
 		// - Distinction sur le mot précédent
-		PreviousWord = new Attribute("PreviousWord");
+		PreviousWord = new Attribute("Word-1");
 		for (AttrValue a : cp.getAllTypes()) {
 			PreviousWord.addValue(a);
+		}
+
+		PreviousPreviousWord = new Attribute("Word-2");
+		for (AttrValue a : cp.getAllTypes()) {
+			PreviousPreviousWord.addValue(a);
 		}
 
 		// - Distinction selon si l'on est dans un group nominal
@@ -82,7 +97,9 @@ public class TreeBank {
 
 		// On crée la liste d'attributs initiale
 		attrs.add(FollowingWord);
+		attrs.add(FollowingFollowingWord);
 		attrs.add(PreviousWord);
+		attrs.add(PreviousPreviousWord);
 		attrs.add(InNominalGroup);
 	}
 
@@ -96,9 +113,10 @@ public class TreeBank {
 				if (c1 == 0 && c2 == 0) {
 					continue;
 				}
-				parseFile(baseFile + c1 + c2 + fileExt);
+				parseFile(baseFileTrain + c1 + c2 + fileExt);
 			}
 		}
+		newPhrase();
 	}
 	
 	void buildTree() {
@@ -188,6 +206,9 @@ public class TreeBank {
 	 * Boucle sur les mots de 2 lignes en parallele
 	 */
 	void parseLines(String line1, String line2) {
+//		System.out.println("Parsing lines : ");
+//		System.out.println(line1);
+//		System.out.println(line2);
 		boolean isNominalGroup;
 
 		// Empty line case.
@@ -237,13 +258,21 @@ public class TreeBank {
 	 * Parse un mot, crée le WordInfo, et le processe dès que complet.
 	 */
 	void parseWord(String word, String type, boolean inNominalGroup) {
+		previousPreviousWord = previousWord;
 		previousWord = currentWord;
 		currentWord = new WordInfo(word, type, inNominalGroup);
 
+		if (previousPreviousWord != null && !previousPreviousWord.equals("")) {
+			previousPreviousWord.nextnexttype = type;
+			processWord(previousPreviousWord);
+			currentWord.prevprevtype = previousPreviousWord.type;
+		} else {
+			currentWord.prevprevtype = "NULL";
+		}
+		
 		if (previousWord != null && !previousWord.word.equals("") ) {
 			// Update infos for previous word and add as an example.
 			previousWord.nexttype = type;
-			processWord(previousWord);
 
 			// Update infos for current word.
 			currentWord.prevtype = previousWord.type;
@@ -258,17 +287,25 @@ public class TreeBank {
 			System.out.println("Word mismatch ! ("+word+"!="+word2+"). Shouldn't happen");
 			return;
 		}
+		previousPreviousWord = previousWord;
 		previousWord = currentWord;
 		currentWord = new WordInfo(word, potentialTypes, inNominalGroup);
 		currentWord.realtype = type;
 
+		if (previousPreviousWord != null && !previousPreviousWord.word.equals("")) {
+			previousPreviousWord.nextnexttype = type;
+			processWord(previousPreviousWord);
+			currentWord.prevprevtype = previousPreviousWord.realtype;
+		} else {
+			currentWord.prevprevtype = "NULL";
+		}
+		
 		if (previousWord != null && !previousWord.word.equals("") ) {
 			// Update infos for previous word and add as an example.
 			previousWord.nexttype = potentialTypes;
-			processWord(previousWord);
 
 			// Update infos for current word.
-			currentWord.prevtype = previousWord.type;
+			currentWord.prevtype = previousWord.realtype;
 		} else {
 			currentWord.prevtype = "NULL";
 		}
@@ -279,14 +316,8 @@ public class TreeBank {
 	 * Fonction appelée en fin de phrase.
 	 */
 	void newPhrase() {
-		// Commit infos for the end of previous sentence, if it exists
-		previousWord = currentWord;
-		currentWord = new WordInfo("","NULL",false);
-		
-		if (previousWord != null) {
-			previousWord.nexttype = "NULL";
-			processWord(previousWord);
-		}
+		parseWord("","NULL",false);
+		parseWord("","NULL",false);
 		
 		nbPhrases++;
 	}
@@ -295,7 +326,9 @@ public class TreeBank {
 		HashMap<Attribute,AttrValue> h = new HashMap<Attribute, AttrValue>();
 
 		h.put(PreviousWord, cp.getAttrValue(wi.prevtype));
+		h.put(PreviousPreviousWord, cp.getAttrValue(wi.prevprevtype));
 		h.put(FollowingWord, cp.getAttrValue(wi.nexttype));
+		h.put(FollowingFollowingWord, cp.getAttrValue(wi.nextnexttype));
 		h.put(InNominalGroup, wi.inNominalGroup ? IsInNominalGroup : IsNotInNominalGroup);
 
 		return new Example(wi.word,cp.getCategory(wi.type),h);
@@ -319,15 +352,25 @@ public class TreeBank {
 	void processWordTest(WordInfo wi) {
 		if (wi.type.contains("|")) {
 //			System.out.println("Process word : " + wi.word + " (" + wi.type + ")");
-//			System.out.println("(" + wi.prevtype + " " + wi.type + " " + wi.nexttype + ")");
-			AttrValue v = cp.getAttrValue(wi.prevtype);
-			if (v == null) {
-				System.out.println("Corpus fail ! found type in previous word : " + wi.prevtype);
+//			System.out.println("(" + wi.prevprevtype + " " + wi.prevtype + " " + wi.type + " " + wi.nexttype + " " + wi.nextnexttype + ")");
+			if (cp.getAttrValue(wi.prevtype) == null) {
+//				System.out.println("Corpus fail ! found type in previous word : " + wi.prevtype);
+				errCount++;
 				return;
 			}
-			v = cp.getAttrValue(wi.nexttype);
-			if (v == null) {
-				System.out.println("Corpus fail ! found type in next word : " + wi.nexttype);
+			if (cp.getAttrValue(wi.prevprevtype) == null) {
+//				System.out.println("Corpus fail ! found type in previous (2) word : " + wi.prevprevtype);
+				errCount++;
+				return;
+			}
+			if (cp.getAttrValue(wi.nextnexttype) == null) {
+//				System.out.println("Corpus fail ! found type in next (2) word : " + wi.nextnexttype);
+				errCount++;
+				return;
+			}
+			if (cp.getAttrValue(wi.nexttype) == null) {
+//				System.out.println("Corpus fail ! found type in next word : " + wi.nexttype);
+				errCount++;
 				return;
 			}
 //			Example e = toExample(wi);
@@ -339,7 +382,7 @@ public class TreeBank {
 			//	System.out.println("Success ! "+ wi.type + " -> " + computedCategory + "(actually "+wi.realtype+")");
 				nbPositives++;
 			} else {
-				System.out.println("Failure ! "+ wi.type + " -> " + computedCategory + "(actually "+wi.realtype+")");
+//				System.out.println("Failure ! "+ wi.type + " -> " + computedCategory + "(actually "+wi.realtype+")");
 			}
 		}
 	}
@@ -348,18 +391,23 @@ public class TreeBank {
 	public void testPerformance() {
 		nbTestedWords = 0;
 		nbPositives = 0;
+		previousWord = null;
+		previousPreviousWord = null;
+		currentWord = null;
+		errCount = 0;
 		
 		for (int c1 = 0; c1 <= 9; c1++) {
 			for (int c2 = 0; c2 <= 9; c2++) {
 				if (c1 == 0 && c2 == 0) {
 					continue;
 				}
-				parseFiles(baseFile + c1 + c2 + fileExt,baseFile + c1 + c2 + fileExt + ambApp);
+				parseFiles(baseFileTest + c1 + c2 + fileExt,baseFileTest + c1 + c2 + fileExt + ambApp);
 			}
 		}
 		
 		System.out.println("Tested words : " + nbTestedWords + " - Positive matches : " + nbPositives + " - Score : " +
 				(double)nbPositives*100/(double)nbTestedWords);
+		System.out.println(errCount + " words skipped.");
 	}
 	
 }

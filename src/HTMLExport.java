@@ -16,6 +16,7 @@ public class HTMLExport {
 
 
 	public static void toFile(Tree t) {
+		System.out.print("Generating html ("+html_output_filename+") ... (this could take a while) ... ");
 		String output = "";
 		String ligne;
 		try {
@@ -40,6 +41,7 @@ public class HTMLExport {
 		catch (IOException e){
 			e.printStackTrace();
 		}		
+		System.out.println("done !");
 
 	}
 

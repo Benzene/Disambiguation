@@ -11,7 +11,9 @@ public class WordInfo {
 	public String word;
 	public String type;
 	public String prevtype;
+	public String prevprevtype;
 	public String nexttype;
+	public String nextnexttype;
 	public String realtype;
 	public boolean inNominalGroup;
 	

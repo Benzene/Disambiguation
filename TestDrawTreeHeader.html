@@ -42,5 +42,16 @@
 /*			display: inline;*/
 		}
 	</style>
+
+<script type="text/javascript">
+
+function switch_visibility(e,ID_div)
+{
+    var el = document.getElementById(ID_div);
+    el.style.display = (el.style.display != 'none' ? 'none' : '');
+    e.stopPropagation();
+}
+</script>
+
 	</head>
 	<body>

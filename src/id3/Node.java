@@ -58,17 +58,21 @@ public class Node implements Tree {
 	}
 
 	public String toHtml() {
-		String ret = "<div class=\"tree\">\n<div class=\"node\">" + a + "</div><br />";
+		String ret = "<div class=\"tree\" onclick=\"switch_visibility(event," + this.hashCode() + ")\">";
+		ret += "<div class=\"node\">" + a + "</div><br />";
+		ret += "<div id=\"" + this.hashCode() + "\" style=\"display: none;\">";
 		for (AttrValue v : children.keySet()) {
 			ret += "<div class=\"tree_wrapper\"><div class=\"tree_title\">" + v + "</div>" + children.get(v).toHtml() + "</div>\n";
 		}
-		ret += "</div>";
+		ret += "</div></div>";
 		return ret;
 	}
 	
 	public Category get(Example e) {
 		AttrValue v = e.getAnswer(a);
-//		System.out.println("Got answer " + v + " to question "+ a + " in get()");
+//		System.out.println("Got answer v=" + v + " to question a="+ a + " in get()");
+//		System.out.println("children.get(v) : " + children.get(v));
+//		System.out.println("children.get(v).get(e) : " + children.get(v).get(e));
 		return children.get(v).get(e);
 	}
 
