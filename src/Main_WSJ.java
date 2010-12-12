@@ -9,7 +9,7 @@ public class Main_WSJ {
 	 */
 	public static void main(String[] args) {
 		
-		TreeBank tb = new TreeBank();
+		TreeBank tb = new TreeBank("00");
 		
 		Tree tree = tb.t;
 		System.out.println(tree);

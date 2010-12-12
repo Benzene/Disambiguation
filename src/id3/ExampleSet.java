@@ -36,6 +36,9 @@ public class ExampleSet {
 		return hm.size();
 	}
 	
+	/*
+	 * Renvoie d * log(d), ou 0 si d=0.
+	 */
 	double plogp(double d) {
 		if (d <= 0) {
 //			System.out.println("Plogp called with value <= 0");
@@ -63,7 +66,6 @@ public class ExampleSet {
 //		System.out.println("Entropy computed with value " + rep);
 		
 		return rep;
-		
 	}
 	
 	/*
@@ -114,10 +116,10 @@ public class ExampleSet {
 //		System.out.println("Choosing attribute " + a + " would mean a gain of " + rep);
 		return rep;
 	}
+	
 	/*
 	 * Renvoie l'ensemble des distributions que l'on peut recevoir après avoir posé une question donnée
 	 */
-	// TODO : faire en sorte de pas avoir à recalculer les sets ici et quand on les utilise.. 
 	HashMap<AttrValue,ExampleSet> possibleDistributions(Attribute a) {
 		
 		HashMap<AttrValue,LinkedList<Example>> sv = new HashMap<AttrValue, LinkedList<Example>>();

@@ -17,11 +17,11 @@ import java.util.LinkedList;
 
 public class TreeBank {
 	
-	static String baseFileTrain = "WSJ/00/wsj_00";
+	String id;
+	String baseFileTrain;
 	static String baseFileTest = "WSJ/00/wsj_00";
 	static String fileExt = ".pos";
 	static String ambApp = ".amb";
-//	static String ambApp = "";
 	
 	int nbPhrases = 0;
 	int errCount = 0;
@@ -52,8 +52,8 @@ public class TreeBank {
 	boolean testmode = false;
 	
 	
-	public TreeBank() {
-		init();
+	public TreeBank(String id) {
+		init(id);
 		parseDir();
 		buildTree();
 	}
@@ -61,7 +61,10 @@ public class TreeBank {
 	/*
 	 * Fonction d'initialisation, avant de parser le fichier.
 	 */	
-	void init() {
+	void init(String id) {
+		this.id = id;		
+		baseFileTrain = "WSJ/" + id + "/wsj_" + id;
+		
 		// On crée un objet qui gèrera les catégories :
 		cp = new CategoryParser();
 
